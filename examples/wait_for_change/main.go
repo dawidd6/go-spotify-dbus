@@ -3,21 +3,23 @@ package main
 import (
 	"fmt"
 	"github.com/dawidd6/go-spotify-dbus"
+	"github.com/godbus/dbus"
 	"log"
 )
 
 func main() {
-	spot, err := spotify.New()
+	conn, err := dbus.SessionBus()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	spot.OnMetadata = func(metadata *spotify.Metadata) {
-		fmt.Printf("METADATA: %+v\n", metadata)
-	}
-	spot.OnStatus = func(status spotify.PlaybackStatus) {
-		fmt.Printf("STATUS: %s\n", status)
-	}
-
-	spot.WaitForPropertiesChanges()
+	spotify.WaitForPropertiesChanges(
+		conn,
+		func(metadata *spotify.Metadata) {
+			fmt.Println(metadata)
+		},
+		func(status spotify.PlaybackStatus) {
+			fmt.Println(status)
+		},
+	)
 }
