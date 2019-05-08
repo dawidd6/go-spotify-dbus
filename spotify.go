@@ -27,7 +27,6 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 	received := new(dbus.Signal)
 	signalNameOwnerChanged := "NameOwnerChanged"
 	signalPropertiesChanged := "PropertiesChanged"
-	started := false
 
 	args := fmt.Sprintf("sender=%s, path=%s, type=signal, member=PropertiesChanged", sender, path)
 	obj := conn.BusObject()
@@ -44,18 +43,27 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 		args,
 	)
 
-	err := conn.Object(
-		"org.freedesktop.DBus",
-		"/org/freedesktop/DBus",
-	).Call(
-		"org.freedesktop.DBus.NameHasOwner",
-		0,
-		sender,
-	).Store(
-		&started,
-	)
+	started, err := IsServiceStarted(conn)
 	if err != nil {
 		return
+	} else if started {
+		metadata, err := GetMetadata(conn)
+		if err != nil {
+			return
+		}
+		currentMetadata = metadata
+		listeners.OnMetadata(metadata)
+
+		status, err := GetPlaybackStatus(conn)
+		if err != nil {
+			return
+		}
+		currentPlaybackStatus = status
+		listeners.OnPlaybackStatus(status)
+
+		listeners.OnServiceStart()
+	} else {
+		listeners.OnServiceStop()
 	}
 
 	channel := make(chan *dbus.Signal, 10)
@@ -67,9 +75,17 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 
 		switch name[len(name)-1] {
 		case signalNameOwnerChanged:
-			started = !started
-			if started {
+			started, err := IsServiceStarted(conn)
+			if err != nil {
+				return
+			} else if started {
 				listeners.OnServiceStart()
+				metadata, err := GetMetadata(conn)
+				if err != nil {
+					return
+				}
+				currentMetadata = metadata
+				listeners.OnMetadata(metadata)
 			} else {
 				listeners.OnServiceStop()
 			}
@@ -92,9 +108,8 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 	}
 }
 
-/*
 func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
-	obj := conn.Object(dest, path)
+	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".Metadata")
 	if err != nil {
 		return nil, err
@@ -104,7 +119,7 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 }
 
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
-	obj := conn.Object(dest, path)
+	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".PlaybackStatus")
 	if err != nil {
 		return StatusUnknown, err
@@ -112,4 +127,23 @@ func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 
 	return ParsePlaybackStatus(property), nil
 }
-*/
+
+func IsServiceStarted(conn *dbus.Conn) (bool, error) {
+	started := false
+
+	err := conn.Object(
+		"org.freedesktop.DBus",
+		"/org/freedesktop/DBus",
+	).Call(
+		"org.freedesktop.DBus.NameHasOwner",
+		0,
+		sender,
+	).Store(
+		&started,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	return started, nil
+}
