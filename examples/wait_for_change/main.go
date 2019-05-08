@@ -13,13 +13,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	spotify.WaitForPropertiesChanges(
-		conn,
-		func(metadata *spotify.Metadata) {
-			fmt.Println(metadata)
+	listeners := &spotify.Listeners{
+		OnMetadata: func(metadata *spotify.Metadata) {
+			fmt.Println("metadata: ", metadata)
 		},
-		func(status spotify.PlaybackStatus) {
-			fmt.Println(status)
+		OnPlaybackStatus: func(status spotify.PlaybackStatus) {
+			fmt.Println("status: ", status)
 		},
-	)
+		OnServiceStart: func() {
+			fmt.Println("start")
+		},
+		OnServiceStop: func() {
+			fmt.Println("stop")
+		},
+	}
+
+	spotify.Listen(conn, listeners)
 }

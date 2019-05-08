@@ -12,18 +12,22 @@ const (
 	member = "org.mpris.MediaPlayer2.Player"
 )
 
-var stop = make(chan int)
-
-func Stop() {
-	stop <- 1
+type Listeners struct {
+	OnMetadata       func(*Metadata)
+	OnPlaybackStatus func(PlaybackStatus)
+	OnServiceStart   func()
+	OnServiceStop    func()
 }
 
-func WaitForPropertiesChanges(conn *dbus.Conn, onMetadata func(*Metadata), onStatus func(PlaybackStatus)) {
+func Listen(conn *dbus.Conn, listeners *Listeners) {
 	currentMetadata := new(Metadata)
 	currentPlaybackStatus := StatusUnknown
 	newMetadata := new(Metadata)
 	newPlaybackStatus := StatusUnknown
 	received := new(dbus.Signal)
+	signalNameOwnerChanged := "NameOwnerChanged"
+	signalPropertiesChanged := "PropertiesChanged"
+	started := false
 
 	args := fmt.Sprintf("sender=%s, path=%s, type=signal, member=PropertiesChanged", sender, path)
 	obj := conn.BusObject()
@@ -40,34 +44,50 @@ func WaitForPropertiesChanges(conn *dbus.Conn, onMetadata func(*Metadata), onSta
 		args,
 	)
 
+	err := conn.Object(
+		"org.freedesktop.DBus",
+		"/org/freedesktop/DBus",
+	).Call(
+		"org.freedesktop.DBus.NameHasOwner",
+		0,
+		sender,
+	).Store(
+		&started,
+	)
+	if err != nil {
+		return
+	}
+
 	channel := make(chan *dbus.Signal, 10)
 	conn.Signal(channel)
 
 	for {
-		select {
-		case received = <-channel:
-		case <-stop:
-			return
-		}
+		received = <-channel
+		name := strings.Split(received.Name, ".")
 
-		if strings.Contains(received.Name, "NameOwnerChanged") {
-			newMetadata = new(Metadata)
-			newPlaybackStatus = StatusUnknown
-		} else {
+		switch name[len(name)-1] {
+		case signalNameOwnerChanged:
+			started = !started
+			if started {
+				listeners.OnServiceStart()
+			} else {
+				listeners.OnServiceStop()
+			}
+		case signalPropertiesChanged:
 			metadata := received.Body[1].(map[string]dbus.Variant)["Metadata"]
 			status := received.Body[1].(map[string]dbus.Variant)["PlaybackStatus"]
 			newMetadata = ParseMetadata(metadata)
 			newPlaybackStatus = ParsePlaybackStatus(status)
-		}
 
-		if currentMetadata.TrackID != newMetadata.TrackID {
-			currentMetadata = newMetadata
-			onMetadata(newMetadata)
-		}
+			if currentMetadata.TrackID != newMetadata.TrackID {
+				currentMetadata = newMetadata
+				listeners.OnMetadata(newMetadata)
+			}
 
-		if currentPlaybackStatus != newPlaybackStatus {
-			currentPlaybackStatus = newPlaybackStatus
-			onStatus(newPlaybackStatus)
+			if currentPlaybackStatus != newPlaybackStatus {
+				currentPlaybackStatus = newPlaybackStatus
+				listeners.OnPlaybackStatus(newPlaybackStatus)
+			}
 		}
 	}
 }
