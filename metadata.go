@@ -6,7 +6,7 @@ import (
 	"github.com/godbus/dbus"
 )
 
-// Metadata is music player (specifically Spotify) metadata
+// Metadata contains Spotify player metadata
 type Metadata struct {
 	Artist      []string `spotify:"xesam:artist"`
 	Title       string   `spotify:"xesam:title"`

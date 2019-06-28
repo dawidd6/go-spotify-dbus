@@ -26,7 +26,7 @@ type Listeners struct {
 	OnServiceStop    func()
 }
 
-// Listen will listen for any changes in PlayPause or metadata from the music player
+// Listen will listen for any changes in PlayPause or metadata from the Spotify app
 func Listen(conn *dbus.Conn, listeners *Listeners) {
 	currentMetadata := new(Metadata)
 	currentPlaybackStatus := StatusUnknown
@@ -116,7 +116,7 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 	}
 }
 
-// GetMetadata returns the current metadata from the music player
+// GetMetadata returns the current metadata from the Spotify app
 func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".Metadata")
@@ -127,7 +127,7 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	return ParseMetadata(property), nil
 }
 
-// GetPlaybackStatus returns the current PlayPause status of the music player
+// GetPlaybackStatus returns the current PlayPause status of the Spotify app
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".PlaybackStatus")
@@ -138,7 +138,7 @@ func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	return ParsePlaybackStatus(property), nil
 }
 
-// IsServiceStarted checks if the music player is running
+// IsServiceStarted checks if the Spotify app is running
 func IsServiceStarted(conn *dbus.Conn) (bool, error) {
 	started := false
 
