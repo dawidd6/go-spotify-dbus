@@ -8,9 +8,14 @@ import (
 )
 
 const (
-	sender = "org.mpris.MediaPlayer2.spotify"
-	path   = "/org/mpris/MediaPlayer2"
-	member = "org.mpris.MediaPlayer2.Player"
+	sender           = "org.mpris.MediaPlayer2.spotify"
+	path             = "/org/mpris/MediaPlayer2"
+	member           = "org.mpris.MediaPlayer2.Player"
+	playMessage      = member + ".Play"
+	pauseMessage     = member + ".Pause"
+	playPauseMessage = member + ".PlayPause"
+	previousMessage  = member + ".Previous"
+	nextMessage      = member + ".Next"
 )
 
 // Listeners is a struct of the events we are listening for
@@ -152,4 +157,89 @@ func IsServiceStarted(conn *dbus.Conn) (bool, error) {
 	}
 
 	return started, nil
+}
+
+// SendPlay sends a "Play" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPlay(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(playPauseMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPause sends a "Pause" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPause(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(playPauseMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPlayPause sends a "PlayPause" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPlayPause(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(playPauseMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendNext sends a "Next" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendNext(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(nextMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPrevious sends a "Previous" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPrevious(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(previousMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
 }
