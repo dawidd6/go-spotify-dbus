@@ -168,7 +168,7 @@ func SendPlay(conn *dbus.Conn) error {
 		return err
 	} else if started {
 		obj := conn.Object(sender, path)
-		c := obj.Call(playPauseMessage, 0)
+		c := obj.Call(playMessage, 0)
 		if c.Err != nil {
 			return c.Err
 		}
@@ -185,7 +185,7 @@ func SendPause(conn *dbus.Conn) error {
 		return err
 	} else if started {
 		obj := conn.Object(sender, path)
-		c := obj.Call(playPauseMessage, 0)
+		c := obj.Call(pauseMessage, 0)
 		if c.Err != nil {
 			return c.Err
 		}
