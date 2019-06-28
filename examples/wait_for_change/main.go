@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/dawidd6/go-spotify-dbus"
-	"github.com/godbus/dbus"
 	"log"
+
+	"github.com/godbus/dbus"
+	"github.com/leosunmo/go-spotify-dbus"
 )
 
 func main() {
