@@ -127,7 +127,8 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	return ParseMetadata(property), nil
 }
 
-// GetPlaybackStatus returns the current PlayPause status of the Spotify app
+// GetPlaybackStatus returns the current Play/Pause status of the Spotify app
+// Status will be "Playing", "Paused" or "Unknown"
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".PlaybackStatus")
