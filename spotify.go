@@ -2,8 +2,9 @@ package spotify
 
 import (
 	"fmt"
-	"github.com/godbus/dbus"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 	member = "org.mpris.MediaPlayer2.Player"
 )
 
+// Listeners is a struct of the events we are listening for
 type Listeners struct {
 	OnMetadata       func(*Metadata)
 	OnPlaybackStatus func(PlaybackStatus)
@@ -19,6 +21,7 @@ type Listeners struct {
 	OnServiceStop    func()
 }
 
+// Listen will listen for any changes in PlayPause or metadata from the music player
 func Listen(conn *dbus.Conn, listeners *Listeners) {
 	currentMetadata := new(Metadata)
 	currentPlaybackStatus := StatusUnknown
@@ -108,6 +111,7 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 	}
 }
 
+// GetMetadata returns the current metadata from the music player
 func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".Metadata")
@@ -118,6 +122,7 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	return ParseMetadata(property), nil
 }
 
+// GetPlaybackStatus returns the current PlayPause status of the music player
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".PlaybackStatus")
@@ -128,6 +133,7 @@ func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	return ParsePlaybackStatus(property), nil
 }
 
+// IsServiceStarted checks if the music player is running
 func IsServiceStarted(conn *dbus.Conn) (bool, error) {
 	started := false
 

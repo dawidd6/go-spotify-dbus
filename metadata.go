@@ -1,10 +1,12 @@
 package spotify
 
 import (
-	"github.com/godbus/dbus"
 	"reflect"
+
+	"github.com/godbus/dbus"
 )
 
+// Metadata is music player (specifically Spotify) metadata
 type Metadata struct {
 	Artist      []string `spotify:"xesam:artist"`
 	Title       string   `spotify:"xesam:title"`
@@ -18,6 +20,7 @@ type Metadata struct {
 	Length      uint64   `spotify:"mpris:length"`
 }
 
+// ParseMetadata returns a parsed Metadata struct
 func ParseMetadata(variant dbus.Variant) *Metadata {
 	metadataMap := variant.Value().(map[string]dbus.Variant)
 	metadataStruct := new(Metadata)
