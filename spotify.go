@@ -2,20 +2,28 @@ package spotify
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/godbus/dbus"
+	"strings"
 )
 
 const (
-	sender           = "org.mpris.MediaPlayer2.spotify"
-	path             = "/org/mpris/MediaPlayer2"
-	member           = "org.mpris.MediaPlayer2.Player"
-	playMessage      = member + ".Play"
-	pauseMessage     = member + ".Pause"
-	playPauseMessage = member + ".PlayPause"
-	previousMessage  = member + ".Previous"
-	nextMessage      = member + ".Next"
+	sender = "org.mpris.MediaPlayer2.spotify"
+	path   = "/org/mpris/MediaPlayer2"
+	member = "org.mpris.MediaPlayer2.Player"
+
+	playMessage           = member + ".Play"
+	pauseMessage          = member + ".Pause"
+	playPauseMessage      = member + ".PlayPause"
+	previousMessage       = member + ".Previous"
+	nextMessage           = member + ".Next"
+	metadataMessage       = member + ".Metadata"
+	playbackStatusMessage = member + ".PlaybackStatus"
+
+	signalNameOwnerChanged  = "NameOwnerChanged"
+	signalPropertiesChanged = "PropertiesChanged"
+
+	metadata       = "Metadata"
+	playbackStatus = "PlaybackStatus"
 )
 
 // Listeners is a struct of the events we are listening for
@@ -27,81 +35,71 @@ type Listeners struct {
 }
 
 // Listen will listen for any changes in PlayPause or metadata from the Spotify app
-func Listen(conn *dbus.Conn, listeners *Listeners) {
-	currentMetadata := new(Metadata)
-	currentPlaybackStatus := StatusUnknown
-	newMetadata := new(Metadata)
-	newPlaybackStatus := StatusUnknown
-	received := new(dbus.Signal)
-	signalNameOwnerChanged := "NameOwnerChanged"
-	signalPropertiesChanged := "PropertiesChanged"
+//
+// This function is blocking
+func Listen(conn *dbus.Conn, errors chan error, listeners *Listeners) {
+	var (
+		currentMetadata       = new(Metadata)
+		currentPlaybackStatus = StatusUnknown
+		channel               = make(chan *dbus.Signal, 10)
+	)
 
+	// Register channel receiving signals
+	conn.Signal(channel)
+
+	// Watch for signals about metadata changes
 	args := fmt.Sprintf("sender=%s, path=%s, type=signal, member=PropertiesChanged", sender, path)
-	obj := conn.BusObject()
-	obj.Call(
-		"org.freedesktop.DBus.AddMatch",
-		0,
-		args,
-	)
-	args = fmt.Sprintf("type=signal, interface=org.freedesktop.DBus, member=NameOwnerChanged, path=/org/freedesktop/DBus, sender=org.freedesktop.DBus, arg0=%s", sender)
-	obj = conn.BusObject()
-	obj.Call(
+	conn.BusObject().Call(
 		"org.freedesktop.DBus.AddMatch",
 		0,
 		args,
 	)
 
+	// Watch for signals about service status changes
+	args = fmt.Sprintf("type=signal, interface=org.freedesktop.DBus, member=NameOwnerChanged, path=/org/freedesktop/DBus, sender=org.freedesktop.DBus, arg0=%s", sender)
+	conn.BusObject().Call(
+		"org.freedesktop.DBus.AddMatch",
+		0,
+		args,
+	)
+
+	// Initially check if service is up
 	started, err := IsServiceStarted(conn)
 	if err != nil {
-		return
-	} else if started {
-		metadata, err := GetMetadata(conn)
-		if err != nil {
-			return
-		}
-		currentMetadata = metadata
-		listeners.OnMetadata(metadata)
+		errors <- err
+	}
 
-		status, err := GetPlaybackStatus(conn)
+	// If up, then initially get metadata and playback status
+	if started {
+		newMetadata, err := GetMetadata(conn)
 		if err != nil {
-			return
+			errors <- err
 		}
-		currentPlaybackStatus = status
-		listeners.OnPlaybackStatus(status)
+
+		newPlaybackStatus, err := GetPlaybackStatus(conn)
+		if err != nil {
+			errors <- err
+		}
+
+		currentMetadata = newMetadata
+		currentPlaybackStatus = newPlaybackStatus
 
 		listeners.OnServiceStart()
+		listeners.OnPlaybackStatus(newPlaybackStatus)
+		listeners.OnMetadata(newMetadata)
 	} else {
 		listeners.OnServiceStop()
 	}
 
-	channel := make(chan *dbus.Signal, 10)
-	conn.Signal(channel)
-
+	// Listen for changes for ever
 	for {
-		received = <-channel
-		name := strings.Split(received.Name, ".")
+		// Wait for signal
+		signal := <-channel
 
-		switch name[len(name)-1] {
-		case signalNameOwnerChanged:
-			started, err := IsServiceStarted(conn)
-			if err != nil {
-				return
-			} else if started {
-				listeners.OnServiceStart()
-				metadata, err := GetMetadata(conn)
-				if err != nil {
-					return
-				}
-				currentMetadata = metadata
-				listeners.OnMetadata(metadata)
-			} else {
-				listeners.OnServiceStop()
-			}
-		case signalPropertiesChanged:
-			metadata := received.Body[1].(map[string]dbus.Variant)["Metadata"]
-			status := received.Body[1].(map[string]dbus.Variant)["PlaybackStatus"]
-			newMetadata = ParseMetadata(metadata)
-			newPlaybackStatus = ParsePlaybackStatus(status)
+		// New metadata and playback status received
+		if strings.HasSuffix(signal.Name, signalPropertiesChanged) {
+			newMetadata := ParseMetadata(signal.Body[1].(map[string]dbus.Variant)[metadata])
+			newPlaybackStatus := ParsePlaybackStatus(signal.Body[1].(map[string]dbus.Variant)[playbackStatus])
 
 			if currentMetadata.TrackID != newMetadata.TrackID {
 				currentMetadata = newMetadata
@@ -113,13 +111,28 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 				listeners.OnPlaybackStatus(newPlaybackStatus)
 			}
 		}
+
+		// Service status changed (Spotify was closed or opened, probably)
+		if strings.HasSuffix(signal.Name, signalNameOwnerChanged) {
+			started, err := IsServiceStarted(conn)
+			if err != nil {
+				errors <- err
+				return
+			}
+
+			if started {
+				listeners.OnServiceStart()
+			} else {
+				listeners.OnServiceStop()
+			}
+		}
 	}
 }
 
 // GetMetadata returns the current metadata from the Spotify app
 func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	obj := conn.Object(sender, path)
-	property, err := obj.GetProperty(member + ".Metadata")
+	property, err := obj.GetProperty(metadataMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +144,7 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 // Status will be "Playing", "Paused" or "Unknown"
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	obj := conn.Object(sender, path)
-	property, err := obj.GetProperty(member + ".PlaybackStatus")
+	property, err := obj.GetProperty(playbackStatusMessage)
 	if err != nil {
 		return StatusUnknown, err
 	}
