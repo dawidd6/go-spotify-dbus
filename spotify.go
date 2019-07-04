@@ -2,16 +2,23 @@ package spotify
 
 import (
 	"fmt"
-	"github.com/godbus/dbus"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
 const (
-	sender = "org.mpris.MediaPlayer2.spotify"
-	path   = "/org/mpris/MediaPlayer2"
-	member = "org.mpris.MediaPlayer2.Player"
+	sender           = "org.mpris.MediaPlayer2.spotify"
+	path             = "/org/mpris/MediaPlayer2"
+	member           = "org.mpris.MediaPlayer2.Player"
+	playMessage      = member + ".Play"
+	pauseMessage     = member + ".Pause"
+	playPauseMessage = member + ".PlayPause"
+	previousMessage  = member + ".Previous"
+	nextMessage      = member + ".Next"
 )
 
+// Listeners is a struct of the events we are listening for
 type Listeners struct {
 	OnMetadata       func(*Metadata)
 	OnPlaybackStatus func(PlaybackStatus)
@@ -19,6 +26,7 @@ type Listeners struct {
 	OnServiceStop    func()
 }
 
+// Listen will listen for any changes in PlayPause or metadata from the Spotify app
 func Listen(conn *dbus.Conn, listeners *Listeners) {
 	currentMetadata := new(Metadata)
 	currentPlaybackStatus := StatusUnknown
@@ -108,6 +116,7 @@ func Listen(conn *dbus.Conn, listeners *Listeners) {
 	}
 }
 
+// GetMetadata returns the current metadata from the Spotify app
 func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".Metadata")
@@ -118,6 +127,8 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 	return ParseMetadata(property), nil
 }
 
+// GetPlaybackStatus returns the current Play/Pause status of the Spotify app
+// Status will be "Playing", "Paused" or "Unknown"
 func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	obj := conn.Object(sender, path)
 	property, err := obj.GetProperty(member + ".PlaybackStatus")
@@ -128,6 +139,7 @@ func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 	return ParsePlaybackStatus(property), nil
 }
 
+// IsServiceStarted checks if the Spotify app is running
 func IsServiceStarted(conn *dbus.Conn) (bool, error) {
 	started := false
 
@@ -146,4 +158,89 @@ func IsServiceStarted(conn *dbus.Conn) (bool, error) {
 	}
 
 	return started, nil
+}
+
+// SendPlay sends a "Play" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPlay(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(playMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPause sends a "Pause" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPause(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(pauseMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPlayPause sends a "PlayPause" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPlayPause(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(playPauseMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendNext sends a "Next" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendNext(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(nextMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
+}
+
+// SendPrevious sends a "Previous" message to the Spotify app.
+// Returns error if anything goes wrong.
+// If the Spotify app is not running, return nil
+func SendPrevious(conn *dbus.Conn) error {
+	started, err := IsServiceStarted(conn)
+	if err != nil {
+		return err
+	} else if started {
+		obj := conn.Object(sender, path)
+		c := obj.Call(previousMessage, 0)
+		if c.Err != nil {
+			return c.Err
+		}
+	}
+	return nil
 }

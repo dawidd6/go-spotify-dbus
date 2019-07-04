@@ -1,18 +1,24 @@
 package spotify
 
 import (
-	"github.com/godbus/dbus"
 	"strings"
+
+	"github.com/godbus/dbus"
 )
 
+// PlaybackStatus is a PlayPause status of a music player
+type PlaybackStatus string
+
 const (
+	// StatusPlaying is the playing state
 	StatusPlaying PlaybackStatus = "Playing"
-	StatusPaused  PlaybackStatus = "Paused"
+	// StatusPaused is the paused state
+	StatusPaused PlaybackStatus = "Paused"
+	// StatusUnknown is an unknown music player state
 	StatusUnknown PlaybackStatus = "Unknown"
 )
 
-type PlaybackStatus string
-
+// ParsePlaybackStatus parses the current PlayPause status
 func ParsePlaybackStatus(variant dbus.Variant) PlaybackStatus {
 	if strings.Contains(variant.String(), "Playing") {
 		return StatusPlaying
