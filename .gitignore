@@ -1,4 +1,6 @@
 examples/wait-for-change/wait-for-change
 examples/spotify-cli/spotify-cli
+wait-for-change
+spotify-cli
 .vscode
 main
