@@ -1,0 +1,8 @@
+container:
+  image: golang:1.12
+
+build_task:
+  build_script:
+    - go list ./... | xargs -l go build -v
+  test_script:
+    - go list ./... | xargs -l go test -v
