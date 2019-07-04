@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/godbus/dbus"
 	"github.com/dawidd6/go-spotify-dbus"
+	"github.com/godbus/dbus"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/godbus/dbus"
 	"github.com/dawidd6/go-spotify-dbus"
+	"github.com/godbus/dbus"
 )
 
 func main() {
@@ -54,13 +54,13 @@ func main() {
 	case "info":
 		var ld time.Duration
 		l := int64(meta.Length)
-		ld = time.Duration(time.Duration(l) * time.Microsecond )
+		ld = time.Duration(time.Duration(l) * time.Microsecond)
 		if ps == "Paused" {
 			fmt.Printf("▮▮ %s - %s\n\tAlbum: %s\n\tRating: %f\n\tLength: %v\n",
 				meta.Artist, meta.Title, meta.Album, meta.AutoRating, ld)
 		} else {
 			fmt.Printf("▶ %s - %s\n\tAlbum: %s\n\tRating: %f\n\tLength: %v\n",
-			meta.Artist, meta.Title, meta.Album, meta.AutoRating, ld)
+				meta.Artist, meta.Title, meta.Album, meta.AutoRating, ld)
 		}
 	}
 
