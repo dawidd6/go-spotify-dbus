@@ -1,9 +1,8 @@
 package spotify
 
 import (
-	"strings"
-
 	"github.com/godbus/dbus"
+	"strings"
 )
 
 // PlaybackStatus is a PlayPause status of a music player
@@ -20,12 +19,14 @@ const (
 
 // ParsePlaybackStatus parses the current PlayPause status
 func ParsePlaybackStatus(variant dbus.Variant) PlaybackStatus {
-	if strings.Contains(variant.String(), "Playing") {
-		return StatusPlaying
-	}
-	if strings.Contains(variant.String(), "Paused") {
-		return StatusPaused
-	}
+	status := strings.Trim(variant.String(), "\"")
 
-	return StatusUnknown
+	switch status {
+	case string(StatusPlaying):
+		return StatusPlaying
+	case string(StatusPaused):
+		return StatusPaused
+	default:
+		return StatusUnknown
+	}
 }
