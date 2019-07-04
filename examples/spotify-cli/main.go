@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/godbus/dbus"
-	"github.com/leosunmo/go-spotify-dbus"
+	"github.com/dawidd6/go-spotify-dbus"
 )
 
 func main() {
