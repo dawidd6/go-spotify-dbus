@@ -20,8 +20,8 @@ type Metadata struct {
 	Length      uint64   `spotify:"mpris:length"`
 }
 
-// ParseMetadata returns a parsed Metadata struct
-func ParseMetadata(variant dbus.Variant) *Metadata {
+// parseMetadata returns a parsed Metadata struct
+func parseMetadata(variant dbus.Variant) *Metadata {
 	metadataMap := variant.Value().(map[string]dbus.Variant)
 	metadataStruct := new(Metadata)
 

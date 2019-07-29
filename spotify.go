@@ -98,8 +98,8 @@ func Listen(conn *dbus.Conn, errors chan error, listeners *Listeners) {
 
 		// New metadata and playback status received
 		if strings.HasSuffix(signal.Name, signalPropertiesChanged) {
-			newMetadata := ParseMetadata(signal.Body[1].(map[string]dbus.Variant)[metadata])
-			newPlaybackStatus := ParsePlaybackStatus(signal.Body[1].(map[string]dbus.Variant)[playbackStatus])
+			newMetadata := parseMetadata(signal.Body[1].(map[string]dbus.Variant)[metadata])
+			newPlaybackStatus := parsePlaybackStatus(signal.Body[1].(map[string]dbus.Variant)[playbackStatus])
 
 			if currentMetadata.TrackID != newMetadata.TrackID {
 				currentMetadata = newMetadata
@@ -137,7 +137,7 @@ func GetMetadata(conn *dbus.Conn) (*Metadata, error) {
 		return nil, err
 	}
 
-	return ParseMetadata(property), nil
+	return parseMetadata(property), nil
 }
 
 // GetPlaybackStatus returns the current Play/Pause status of the Spotify app
@@ -149,7 +149,7 @@ func GetPlaybackStatus(conn *dbus.Conn) (PlaybackStatus, error) {
 		return StatusUnknown, err
 	}
 
-	return ParsePlaybackStatus(property), nil
+	return parsePlaybackStatus(property), nil
 }
 
 // IsServiceStarted checks if the Spotify app is running

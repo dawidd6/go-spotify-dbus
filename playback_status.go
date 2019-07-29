@@ -17,8 +17,8 @@ const (
 	StatusUnknown PlaybackStatus = "Unknown"
 )
 
-// ParsePlaybackStatus parses the current PlayPause status
-func ParsePlaybackStatus(variant dbus.Variant) PlaybackStatus {
+// parsePlaybackStatus parses the current PlayPause status
+func parsePlaybackStatus(variant dbus.Variant) PlaybackStatus {
 	status := strings.Trim(variant.String(), "\"")
 
 	switch status {
