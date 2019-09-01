@@ -26,18 +26,10 @@ const (
 	playbackStatus = "PlaybackStatus"
 )
 
-// Listeners is a struct of the events we are listening for
-type Listeners struct {
-	OnMetadata       func(*Metadata)
-	OnPlaybackStatus func(PlaybackStatus)
-	OnServiceStart   func()
-	OnServiceStop    func()
-}
-
 // Listen will listen for any changes in PlayPause or metadata from the Spotify app
 //
 // This function is blocking
-func Listen(conn *dbus.Conn, errors chan error, listeners *Listeners) {
+func Listen(conn *dbus.Conn, listeners *Listeners) {
 	var (
 		currentMetadata       = new(Metadata)
 		currentPlaybackStatus = StatusUnknown
@@ -66,19 +58,19 @@ func Listen(conn *dbus.Conn, errors chan error, listeners *Listeners) {
 	// Initially check if service is up
 	started, err := IsServiceStarted(conn)
 	if err != nil {
-		errors <- err
+		listeners.OnError(err)
 	}
 
 	// If up, then initially get metadata and playback status
 	if started {
 		newMetadata, err := GetMetadata(conn)
 		if err != nil {
-			errors <- err
+			listeners.OnError(err)
 		}
 
 		newPlaybackStatus, err := GetPlaybackStatus(conn)
 		if err != nil {
-			errors <- err
+			listeners.OnError(err)
 		}
 
 		currentMetadata = newMetadata
@@ -116,8 +108,7 @@ func Listen(conn *dbus.Conn, errors chan error, listeners *Listeners) {
 		if strings.HasSuffix(signal.Name, signalNameOwnerChanged) {
 			started, err := IsServiceStarted(conn)
 			if err != nil {
-				errors <- err
-				return
+				listeners.OnError(err)
 			}
 
 			if started {
