@@ -1,8 +1,0 @@
-container:
-  image: golang:1.12
-
-task:
-  build_script:
-    - go build -v ./...
-  test_script:
-    - go test -v ./...
